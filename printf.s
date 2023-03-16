@@ -20,8 +20,7 @@ _start:
 
 	mov eax, 165d		; translating digit to base_2
 	xor ecx, ecx
-	mov cl, 4d
-	call Base2ToCmd
+	call DecToCmd
 
 	
 
@@ -116,6 +115,46 @@ Base2ToCmd:
 	pop rsi
 	ret
 
+
+;------------------------------------------------
+; Translates value in eax into dec 
+; template string
+;------------------------------------------------
+;  Entry: eax - value to translate
+;  		  rcx - base 2^(1, 3, 4) = 2, 8, 16 = bin, oct, hex
+;
+;  Destroys: eax, ebx, edx
+;
+;  Expects: template strings ends on \0
+;------------------------------------------------
+
+DecToCmd:
+	push rsi
+	push rdi
+
+	mov rsi, string_buffer
+
+	mov ebx, 10d   ; base of division
+
+.loop:
+	
+	xor edx, edx	; edx = 0
+
+	div ebx			; now in eax - res, edx - surplus
+	
+	add edx, 48d	; to ASCII digit
+
+	mov [rsi], edx	; string_buffer = on of the digits in the number
+	inc rsi			; ptr++
+
+	cmp eax, 0
+	jne .loop
+
+	call ReverseAndPrint
+	
+	pop rdi
+	pop rsi
+	ret
 
 
 ;------------------------------------------------
