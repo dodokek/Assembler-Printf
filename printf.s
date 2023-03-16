@@ -18,9 +18,9 @@ global _start
 
 _start:
 
-	mov eax, 165d		; translating digit to base_2
-	xor ecx, ecx
-	call DecToCmd
+	mov eax, -5d		; translating digit to base_2
+	mov ecx, 1
+	call Base2ToCmd
 
 	
 
@@ -81,6 +81,11 @@ Base2ToCmd:
 
 	mov rsi, string_buffer
 
+	cmp eax, 0			; in case digit is below zero
+	jge .loop
+	neg eax
+	mov r15, 1			; setting flag to print '-' at the end
+
 .loop:
 	
 	mov ebx, eax
@@ -108,6 +113,14 @@ Base2ToCmd:
 	cmp eax, 0
 	jne .loop
 
+
+	cmp r15, 1		; adding '-' in case of negative flag in r15
+	jne .skip 
+	
+	mov byte [rsi], '-'
+	inc rsi
+
+.skip:
 	call ReverseAndPrint
 	
 
@@ -133,8 +146,13 @@ DecToCmd:
 	push rdi
 
 	mov rsi, string_buffer
-
 	mov ebx, 10d   ; base of division
+
+	cmp eax, 0			; in case digit is below zero
+	jge .loop
+	neg eax
+	mov r15, 1			; setting flag to print '-' at the end
+
 
 .loop:
 	
@@ -150,6 +168,13 @@ DecToCmd:
 	cmp eax, 0
 	jne .loop
 
+	cmp r15, 1		; adding '-' in case of negative flag in r15
+	jne .skip 
+	
+	mov byte [rsi], '-'
+	inc rsi
+
+.skip:
 	call ReverseAndPrint
 	
 	pop rdi
@@ -166,6 +191,7 @@ DecToCmd:
 ;
 ;  Expects: 
 ;------------------------------------------------
+
 ReverseAndPrint: 
 
 	;-------Now reversing the string upside-down-----
