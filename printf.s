@@ -31,7 +31,6 @@ global DodoPrint
 
 DodoPrint:
 
-	pop r15					; return adress need to be saved
 
 	push r9					; due to the call of the printf, first 6 args are being stored in the following registers			
 	push r8					; other arguments are being in stack
@@ -60,7 +59,6 @@ DodoPrint:
 	pop r8
 	pop r9
 
-	push r15				; restoring return adress
 
 	ret
 
