@@ -27,41 +27,46 @@ times ('x' - 's' - 1)   dq Void
 
 section .text
 
-global _start
+global DodoPrint
 
-_start:
+DodoPrint:
 
-	mov rsi, jump_table
+	pop r15					; return adress need to be saved
 
-	mov r8, 123d	; pushing into stack the argument for printf
-	push r8
-	mov r9, 228d
-	push r9
-	mov r10, 123d	; char
-	push r10
-	mov r11, test_string
-	push r11
-	mov r12, 45d
-	push r12
+	push r9					; due to the call of the printf, first 6 args are being stored in the following registers			
+	push r8					; other arguments are being in stack
+	push rcx
+	push rdx
+	push rsi ; <---------------------<---------------------------<-------------------------------																					
+	push rdi ;																					|
+	push rbp				; saving base pointer 												|
+	;																							|
+	mov rbp, rsp			; saving stack pointer to access args								^
+	add rbp, 16				; skipping template string in stack	also skipping rbp				|
+	;																							|
+	; rbp -->----------------------------->---------------->-------------------------------------
 
-	mov rbp, rsp			; saving stack pointer to access args		
-
-	mov rsi, template_str	; rsi points to template string
+	mov rsi, rdi			; rsi points to template string which passed as 1-st argument of printf
 	
 	call PrintfMain			; calling main function
 	
 ;---End of prog
+	pop rbp
 
-	pop r12
-	pop r11
-	pop r10 
-	pop r9
+	pop rdi 				; balancing stack by deleting 6 args from it
+	pop rsi
+	pop rdx
+	pop rcx
 	pop r8
+	pop r9
 
+	push r15				; restoring return adress
 
-    mov eax, 0x1            ; exiting the application like cool progers
-	mov ebx, 0              ; err code = 0
-	int 80h                 ; calling interrupt
+	ret
+
+    ; mov eax, 0x1            ; exiting the application like cool progers
+	; mov ebx, 0              ; err code = 0
+	; int 80h                 ; calling interrupt
 
 
 ;------------------------------------------------
