@@ -1,14 +1,23 @@
 section .data
 
-template_str: 		db "Hello there %d", 0	; template string
+template_str: 		db "Hello there %b", 0	; template string
 
 buffer: times 64 	db 12					; buffer
-
-hex_letters: 		db "ABCDEF"				; for printing hex numbers
 
 string_buffer: times 16 db 0			; for translator to store the number to print
 
 string_help_buffer: times 16 db 0		; for reversing number string
+
+jump_table:
+						dq Bin
+						dq Char
+						dq Decimal
+times ('o' - 'e' - 1)   dq Void
+						dq Oct
+times ('s' - 'o' - 1)   dq Void
+						dq String
+times ('x' - 's' - 1)   dq Void
+						dq Hex
 
 ;------------------------------------------------
 
@@ -18,15 +27,31 @@ global _start
 
 _start:
 
-	mov eax, -5d		; translating digit to base_2
-	mov ecx, 1
-	call Base2ToCmd
+	mov r8, 123d	; pushing into stack the argument for printf
+	push r8
+	mov r9, 228d
+	push r9
+	mov r10, 1337d
+	push r10
+	mov r11, 15d
+	push r11
 
+	mov rbp, rsp			; saving stack pointer to access args		
+
+	mov rsi, template_str	; rsi points to template string
 	
+	call PrintfMain			; calling main function
+	
+;---End of prog
 
-    mov eax,0x1          ; exiting the application like cool progers
-	mov ebx,0            ; err code = 0
-	int 80h              ; calling interrupt
+	pop r11
+	pop r10 
+	pop r9
+	pop r8
+
+    mov eax, 0x1            ; exiting the application like cool progers
+	mov ebx, 0              ; err code = 0
+	int 80h                 ; calling interrupt
 
 
 ;------------------------------------------------
@@ -34,9 +59,8 @@ _start:
 ; template string
 ;------------------------------------------------
 ;  Entry: rsi - pointer to template string
-;  		  r8  - first arg
-;		  r9  - second arg
-;
+;  		  r8 - r15 arguments for printf 
+;		
 ;  Destroys:
 ;
 ;  Expects: template strings ends on \0
@@ -51,7 +75,7 @@ PrintfMain:
 	je .end
 
 	cmp al, '%'		; if al == % then handle argument
-	; je HandleArg
+	je HandleArg
 
 	call Putch		; print char
 
@@ -62,15 +86,98 @@ PrintfMain:
 .end:
 	ret
 
+;------------------------------------------------
+;  Handle arguments, triggers on % appearence 
+;------------------------------------------------
+;  Entry: rsi - template string pointer
+;
+;  Destroys: 
+;
+;  Expects: 
+;------------------------------------------------
+HandleArg:
+
+	inc rsi		; now rsi is on type letter
+	xor rax, rax
+	mov al, [rsi]
+
+
+	mov rax, [jump_table + 8 * (rax - 'b')]		; now in rax pointer to function according to val after %
+    jmp rax
+
+
+	ret
+
+
+;------------------------------------------------
+;  Functions of jump table for printf 
+;------------------------------------------------
+;  Entry: to bin, oct, hex, dec, string, char, %%
+;
+;  Destroys: 
+;
+;  Expects: jmp table links correctly
+;------------------------------------------------	
+
+
+Char:
+
+	jmp PrintfMain	; returning to proccessing of each template string's char
+
+;----------------------------------------------------------------------------
+
+String:
+
+	jmp PrintfMain	; returning to proccessing of each template string's char
+
+;----------------------------------------------------------------------------
+
+
+Bin:
+	
+	mov rcx, 1		; setting base of 2
+
+	call Base2ToCmd
+
+	jmp PrintfMain	; returning to proccessing of each template string's char
+
+;----------------------------------------------------------------------------
+
+
+
+Oct:
+
+	jmp PrintfMain	; returning to proccessing of each template string's char
+
+;----------------------------------------------------------------------------
+
+Decimal:
+
+	jmp PrintfMain	; returning to proccessing of each template string's char
+
+;----------------------------------------------------------------------------
+
+Hex:
+
+	jmp PrintfMain	; returning to proccessing of each template string's char
+
+;----------------------------------------------------------------------------
+
+
+Void:
+
+	jmp PrintfMain	; returning to proccessing of each template string's char
+
+
 
 ;------------------------------------------------
 ; Translates value in eax into bin, oct or hex 
 ; template string
 ;------------------------------------------------
-;  Entry: eax - value to translate
+;  Entry: rbp pointing to argument in stack
 ;  		  rcx - base 2^(1, 3, 4) = 2, 8, 16 = bin, oct, hex
 ;
-;  Destroys: eax, ebx, edx
+;  Destroys: eax, ebx, edx, r15
 ;
 ;  Expects: template strings ends on \0
 ;------------------------------------------------
@@ -78,6 +185,10 @@ PrintfMain:
 Base2ToCmd:
 	push rsi
 	push rdi
+
+	xor rax, rax
+	mov rax, [rbp]	; getting from stack value of next argument
+	add rbp, 8d 	; moving ptr to next argument in stack
 
 	mov rsi, string_buffer
 
@@ -133,7 +244,7 @@ Base2ToCmd:
 ; Translates value in eax into dec 
 ; template string
 ;------------------------------------------------
-;  Entry: eax - value to translate
+;  Entry: rbp pointing to value in stack
 ;  		  rcx - base 2^(1, 3, 4) = 2, 8, 16 = bin, oct, hex
 ;
 ;  Destroys: eax, ebx, edx
@@ -144,6 +255,10 @@ Base2ToCmd:
 DecToCmd:
 	push rsi
 	push rdi
+
+	xor rax, rax
+	mov rax, [rbp]	; getting from stack value of next argument
+	add rbp, 8d 	; moving ptr to next argument in stack
 
 	mov rsi, string_buffer
 	mov ebx, 10d   ; base of division
