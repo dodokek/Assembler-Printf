@@ -1,6 +1,6 @@
 section .data
 
-template_str: 		db "Hello there%x %s, %c, %d, %o, %j", 10d, 0	; template string
+template_str: 		db "Hello %%there %%%x %s, %c, %d, %b, %j", 10d, 0	; template string
 
 test_string:		db "someone called me in printf, yay", 0
 
@@ -108,12 +108,21 @@ PrintfMain:
 
 HandleArg:
 
-	inc rsi		; now rsi is on type letter
+	inc rsi		; now rsi is on type-symbol
 	xor rax, rax
 	mov al, [rsi]
-	inc rsi		; skipping the arg
+
+	cmp al, '%'
+	jne .no_percent
+	
+	call Putch
+	inc rsi
+	jmp PrintfMain
+
+.no_percent:
 
 
+	inc rsi		; skipping the arg character
 	mov rax, [jump_table + 8 * (rax - 'b')]		; now in rax pointer to function according to val after %
     jmp rax
 
