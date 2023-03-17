@@ -1,18 +1,22 @@
 section .data
 
-template_str: 		db "Hello there %b", 0	; template string
+template_str: 		db "Hello there%x %s, %c, %d, %o, %j", 10d, 0	; template string
 
-buffer: times 64 	db 12					; buffer
+test_string:		db "someone called me in printf, yay", 0
+
+buffer: times 64 	db 12				; buffer
 
 string_buffer: times 16 db 0			; for translator to store the number to print
 
 string_help_buffer: times 16 db 0		; for reversing number string
 
+message_error:		db 10d, "No such option for % in printf, my friend :(", 10d, 0
+
 jump_table:
 						dq Bin
 						dq Char
 						dq Decimal
-times ('o' - 'e' - 1)   dq Void
+times ('o' - 'd' - 1)   dq Void
 						dq Oct
 times ('s' - 'o' - 1)   dq Void
 						dq String
@@ -27,14 +31,18 @@ global _start
 
 _start:
 
+	mov rsi, jump_table
+
 	mov r8, 123d	; pushing into stack the argument for printf
 	push r8
 	mov r9, 228d
 	push r9
-	mov r10, 1337d
+	mov r10, 123d	; char
 	push r10
-	mov r11, 15d
+	mov r11, test_string
 	push r11
+	mov r12, 45d
+	push r12
 
 	mov rbp, rsp			; saving stack pointer to access args		
 
@@ -44,10 +52,12 @@ _start:
 	
 ;---End of prog
 
+	pop r12
 	pop r11
 	pop r10 
 	pop r9
 	pop r8
+
 
     mov eax, 0x1            ; exiting the application like cool progers
 	mov ebx, 0              ; err code = 0
@@ -95,11 +105,13 @@ PrintfMain:
 ;
 ;  Expects: 
 ;------------------------------------------------
+
 HandleArg:
 
 	inc rsi		; now rsi is on type letter
 	xor rax, rax
 	mov al, [rsi]
+	inc rsi		; skipping the arg
 
 
 	mov rax, [jump_table + 8 * (rax - 'b')]		; now in rax pointer to function according to val after %
@@ -121,13 +133,31 @@ HandleArg:
 
 
 Char:
+	push rsi		; saving pointer to original string
 
+	xor rax, rax
+	mov rax, [rbp]	; getting from stack value of next argument
+	add rbp, 8d 	; moving ptr to next argument in stack
+
+	mov rsi, buffer	; tmp storage of char
+	mov byte [rsi], al
+
+	call Putch
+
+	pop rsi
 	jmp PrintfMain	; returning to proccessing of each template string's char
 
 ;----------------------------------------------------------------------------
 
 String:
+	push rsi		; saving pointer to original string
 
+	mov rsi, [rbp]	; getting from stack value of next argument
+	add rbp, 8d 	; moving ptr to next argument in stack
+
+	call Puts
+
+	pop rsi
 	jmp PrintfMain	; returning to proccessing of each template string's char
 
 ;----------------------------------------------------------------------------
@@ -144,8 +174,11 @@ Bin:
 ;----------------------------------------------------------------------------
 
 
-
 Oct:
+
+	mov rcx, 3		; setting base of 8
+
+	call Base2ToCmd
 
 	jmp PrintfMain	; returning to proccessing of each template string's char
 
@@ -153,11 +186,17 @@ Oct:
 
 Decimal:
 
+	call DecToCmd
+
 	jmp PrintfMain	; returning to proccessing of each template string's char
 
 ;----------------------------------------------------------------------------
 
 Hex:
+
+	mov rcx, 4		; setting base of 16
+
+	call Base2ToCmd
 
 	jmp PrintfMain	; returning to proccessing of each template string's char
 
@@ -165,6 +204,13 @@ Hex:
 
 
 Void:
+
+	push rsi
+
+	mov rsi, message_error
+	call Puts
+
+	pop rsi
 
 	jmp PrintfMain	; returning to proccessing of each template string's char
 
@@ -313,6 +359,7 @@ ReverseAndPrint:
 
 	mov rdi, string_help_buffer
 	dec rsi	; setting ptr to end of string buffer
+	
 .reverse:
 
 	mov ah, byte [rsi]		; string_buffer[n-i] = string_help_buffer[i]
@@ -346,7 +393,7 @@ ReverseAndPrint:
 
 Putch:
 
-	push rcx     ; i still havent figure out, but syscall destroys rcx and r11, so restore them
+	push rcx     ; i still havent figured out, but syscall destroys rcx and r11, so restore them
 	push r11
 
 	mov rdx, 1   ; msg len
@@ -385,8 +432,8 @@ Puts:
 	jmp .loop
 .end_loop:
 
-	mov byte [rsi], 10d	; new line symb
-	call Putch
+	; mov byte [rsi], 10d	; new line symb
+	; call Putch
 
 	ret
 
