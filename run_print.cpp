@@ -1,4 +1,4 @@
-extern void DodoPrint (const char* template_string, ...);
+extern "C" void DodoPrint (const char* template_string, ...);
 
 int main()
 {
