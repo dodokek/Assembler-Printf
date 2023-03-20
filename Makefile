@@ -9,5 +9,10 @@ printf.o : printf.s
 run_print.o : run_print.cpp
 	gcc	-c run_print.cpp -o run_print.o
 
+test:
+	nasm -f elf64 -o test_org_print.o test_org_print.s
+	gcc -no-pie -o test_org_print.out test_org_print.o
+
+
 clear:
 	rm *.o

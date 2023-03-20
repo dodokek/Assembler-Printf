@@ -1,8 +1,7 @@
+
 section .data
 
 template_str: 		db "Hello %%there %%%x %s, %c, %d, %b, %j", 10d, 0	; template string
-
-test_string:		db "someone called me in printf, yay", 0
 
 buffer: times 64 	db 12				; buffer
 
@@ -11,6 +10,8 @@ string_buffer: times 16 db 0			; for translator to store the number to print
 string_help_buffer: times 16 db 0		; for reversing number string
 
 message_error:		db 10d, "No such option for % in printf, my friend :(", 10d, 0
+
+section .rodata
 
 jump_table:
 						dq Bin
@@ -27,10 +28,11 @@ times ('x' - 's' - 1)   dq Void
 
 section .text
 
+extern printf
 global DodoPrint
 
 DodoPrint:
-
+	pop r15					; saving return address
 
 	push r9					; due to the call of the printf, first 6 args are being stored in the following registers			
 	push r8					; other arguments are being in stack
@@ -49,7 +51,6 @@ DodoPrint:
 	
 	call PrintfMain			; calling main function
 	
-;---End of prog
 	pop rbp
 
 	pop rdi 				; balancing stack by deleting 6 args from it
@@ -59,12 +60,9 @@ DodoPrint:
 	pop r8
 	pop r9
 
+	push r15
 
 	ret
-
-    ; mov eax, 0x1            ; exiting the application like cool progers
-	; mov ebx, 0              ; err code = 0
-	; int 80h                 ; calling interrupt
 
 
 ;------------------------------------------------
@@ -99,6 +97,7 @@ PrintfMain:
 .end:
 	ret
 
+
 ;------------------------------------------------
 ;  Handle arguments, triggers on % appearence 
 ;------------------------------------------------
@@ -116,6 +115,16 @@ HandleArg:
 	mov al, [rsi]
 
 	cmp al, '%'
+	je .is_percent
+
+	cmp al, 'b'
+	jl Void
+
+	cmp al, 'x'
+	jg Void
+
+.is_percent:
+	cmp al, '%'
 	jne .no_percent
 	
 	call Putch
@@ -123,7 +132,6 @@ HandleArg:
 	jmp PrintfMain
 
 .no_percent:
-
 
 	inc rsi		; skipping the arg character
 	mov rax, [jump_table + 8 * (rax - 'b')]		; now in rax pointer to function according to val after %

@@ -1,11 +1,16 @@
+#include <stdio.h>
+
 extern "C" void DodoPrint (const char* template_string, ...);
 
 int main()
 {
-    DodoPrint ("Bebrochka!\n");
 
-    DodoPrint ("У меня %d хромосом.\n", 47);
+    DodoPrint ("У меня %d хромосом.\n", 10);
     
-    DodoPrint ("Hi %% %d %x %s %b \n", 127, 23, "Kekich", 65);
+    DodoPrint ("Привет, %s, я твой %d-ый подписчик. %b%% меня хочет пицы c %o ананасов на ней \n" \
+    "Завтра я поймаю %x женщин и покажу им свой o%co\n", "Ded", 54, 23, 1098, 45, 33);
+
+
+
     return 0;
 }
