@@ -32,7 +32,7 @@ extern printf
 global DodoPrint
 
 DodoPrint:
-	pop r15					; saving return address
+	pop r13					; saving return address
 
 	push r9					; due to the call of the printf, first 6 args are being stored in the following registers			
 	push r8					; other arguments are being in stack
@@ -60,7 +60,7 @@ DodoPrint:
 	pop r8
 	pop r9
 
-	push r15
+	push r13
 
 	ret
 
@@ -134,8 +134,7 @@ HandleArg:
 .no_percent:
 
 	inc rsi		; skipping the arg character
-	mov rax, [jump_table + 8 * (rax - 'b')]		; now in rax pointer to function according to val after %
-    jmp rax
+	jmp [jump_table + 8 * (rax - 'b')]		; jumping to jump table address
 
 
 	ret
@@ -249,6 +248,9 @@ Void:
 ;------------------------------------------------
 
 Base2ToCmd:
+	call ClearStringBuffer
+	xor r15, r15
+
 	push rsi
 	push rdi
 
@@ -258,6 +260,7 @@ Base2ToCmd:
 
 	mov rsi, string_buffer
 
+	xor r10, r10
 	cmp eax, 0			; in case digit is below zero
 	jge .loop
 	neg eax
@@ -277,11 +280,11 @@ Base2ToCmd:
 	cmp edx, 10d	; checking if there are need to print letters like A,B,C,D,E,F
 	jl .not_hex
 
-	add edx, 55d	; to ASCII letter
+	add edx, 'A'	; to ASCII letter
 
 	jmp .is_hex
 .not_hex:	
-	add edx, 48d	; to ASCII digit
+	add edx, '0'	; to ASCII digit
 .is_hex:
 
 	mov [rsi], edx	; string_buffer = on of the digits in the number
@@ -319,6 +322,10 @@ Base2ToCmd:
 ;------------------------------------------------
 
 DecToCmd:
+	call ClearStringBuffer
+
+	xor r15, r15
+
 	push rsi
 	push rdi
 
@@ -360,6 +367,39 @@ DecToCmd:
 	
 	pop rdi
 	pop rsi
+	ret
+
+;-----------------------------------------
+;
+;	Function clears reversed string buffer
+;	from previous prints
+;
+;	Destroy: string_help_string
+;
+;-----------------------------------------
+
+ClearStringBuffer:
+
+	push rsi
+	push rdi
+	push rcx
+
+	xor rcx, rcx
+	mov rsi, string_help_buffer
+.loop:
+
+	mov byte [rsi], 0
+	inc rsi
+	inc rcx
+	cmp rcx, 15
+
+	jne .loop
+
+
+	pop rcx
+	pop rdi
+	pop rsi
+
 	ret
 
 

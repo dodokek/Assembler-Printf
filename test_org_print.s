@@ -8,6 +8,7 @@ global main
 extern printf
 
 main:
+    mov rax, -1
 
     push rbp
 
